@@ -432,66 +432,65 @@ def main(datafile, configfile = glob.CONFIGFILE):
             print("\rNext cycle in {:1.0f} sec". format((timelast_cycle  + glob.cycletime) - time.time() ), end="")
             #sys.stdout.flush() # not needed
 
-            if not 'win32' in sys.platform:   # curses does not work on Windows
+            ret = util.checkForKeys()
+            #print(ret)
 
-                ret = util.checkForKeys()
+            # don't make 2 plots if you have both p and P
+            if "p" in ret:        # small cap p
+                util.bell()
+                util.ncprint("*** Preparing time limited plot! ***")
+                util.plotGraph(glob.logfilename)
 
-                # don't make 2 plots if you have both p and P
-                if   "p" in ret:        # small cap p
-                    util.bell()
-                    util.ncprint("Preparing time limited plot!")
-                    util.plotGraph(glob.logfilename)
+            elif "P" in ret:        # large cap p
+                util.bell()
+                orig = glob.plotLastValues
+                glob.plotLastValues = None
+                util.ncprint("*** Preparing full plot! ***")
+                util.plotGraph(glob.logfilename)
+                glob.plotLastValues = orig
 
-                elif "P" in ret:        # large cap p
-                    util.bell()
-                    orig = glob.plotLastValues
-                    glob.plotLastValues = None
-                    util.ncprint("Preparing full plot!")
-                    util.plotGraph(glob.logfilename)
-                    glob.plotLastValues = orig
+            if "V" in ret.upper():
+                util.bell()
+                util.ncprint("Version status:")
+                for a in util.version_status():
+                    util.ncprint( "   {:15s}: {}".format(a[0], a[1]))
+                print()
 
-                if "V" in ret.upper():
-                    util.bell()
-                    util.ncprint("Version status:")
-                    for a in util.version_status():
-                        util.ncprint( "   {:15s}: {}".format(a[0], a[1]))
-                    print()
+            if "H" in ret.upper():
+                util.bell()
+                util.ncprint("Help usage:")
+                util.ncprint(glob.USAGE)
+                print()
 
-                if "H" in ret.upper():
-                    util.bell()
-                    util.ncprint("Help usage:")
-                    util.ncprint(glob.USAGE)
-                    print()
+            if "M" in ret.upper():
+                util.bell()
+                util.ncprint("Take a measuremtn now")
+                break
 
-                if "M" in ret.upper():
-                    util.bell()
-                    util.ncprint("Take a measuremtn now")
-                    break
+            if "Q" in ret.upper():
+                util.bell()
+                util.ncprint("Quit")
+                util.shutdown()
+                sys.exit(0)
 
-                if "Q" in ret.upper():
-                    util.bell()
-                    util.ncprint("Quit")
-                    util.shutdown()
-                    sys.exit(0)
+            if "I" in ret.upper():
+                util.bell()
+                with open(os.path.normpath(glob.logfilename), "rt") as cfghandle:
+                    llines = cfghandle.readlines()      # llines is list of lines
+                util.ncprint("Info:")
+                util.ncprint("   {:25s} : {}".  format("Logfile", glob.logfilename))
+                util.ncprint("   {:25s} : {:,}".format("   File size (bytes)", os.path.getsize(glob.logfilename)))
+                util.ncprint("   {:25s} : {:,}".format("   No of lines", len(llines)))
+                util.ncprint("   {:25s} : {}".  format("Configfile", glob.configfile))
+                print()
+                util.ncprint("   {:25s} : {}".  format("Cycletime (sec)", glob.cycletime))
+                util.ncprint("   {:25s} : {}".  format("Graphcycle (sec) (0=OFF)", glob.graphcycle))
 
-                if "I" in ret.upper():
-                    util.bell()
-                    with open(os.path.normpath(glob.logfilename), "rt") as cfghandle:
-                        llines = cfghandle.readlines()      # llines is list of lines
-                    util.ncprint("Info:")
-                    util.ncprint("   {:25s} : {}".  format("Logfile", glob.logfilename))
-                    util.ncprint("   {:25s} : {:,}".format("   File size (bytes)", os.path.getsize(glob.logfilename)))
-                    util.ncprint("   {:25s} : {:,}".format("   No of lines", len(llines)))
-                    util.ncprint("   {:25s} : {}".  format("Configfile", glob.configfile))
-                    print()
-                    util.ncprint("   {:25s} : {}".  format("Cycletime (sec)", glob.cycletime))
-                    util.ncprint("   {:25s} : {}".  format("Graphcycle (sec) (0=OFF)", glob.graphcycle))
-
-                    util.ncprint("   {:25s} : {}".  format("Last records to plot", glob.plotLastValues))
-                    print()
-                    for dongle_name, dongle in glob.dongles:
-                        util.infoPrint(dongle, dongle_name)
-                    print()
+                util.ncprint("   {:25s} : {}".  format("Last records to plot", glob.plotLastValues))
+                print()
+                for dongle_name, dongle in glob.dongles:
+                    util.infoPrint(dongle, dongle_name)
+                print()
 
             time.sleep(0.2)
             if time.time() - timelast_cycle > glob.cycletime: #Cycle time is elapsed
@@ -576,7 +575,7 @@ if __name__ == "__main__":
             #print("arg:", len(arg), arg)     # so far only the Datafile is arg
             glob.logfilename = arg
     else:
-        glob.logfilename = util.getDataPath() + '/' + "Sensor-{}.log".format(util.strtime())
+        glob.logfilename = os.path.join(util.getDataPath(), "Sensor-{}.log".format(util.strtime()))
 
     if IOW: print("{:25s}: {}".format("IOW - Using Library", IOW.iowlib))
     print("{:25s}: {}".format("Logfilename",                    glob.logfilename))

@@ -5,6 +5,10 @@
 Global variables for i2cusbdongles
 """
 
+import sys, os
+PLATFORM = sys.platform
+os.system('color') # to enable ansi escape characters for color codes
+
 # Versions and infos
 __author__          = "jmmelkon"
 __copyright__       = "Copyright 2022"
@@ -20,6 +24,9 @@ verbose             = True                 # more detailed printing, use via com
 
 # dir & file
 dataDirectory       = "data"                # the data subdirectory to the program directory
+
+CONFIGFILE          = "cfg/pytoolsPlot.cfg" # default config file
+configfile          = CONFIGFILE
 
 #%% Dongles
 
@@ -131,8 +138,7 @@ subxpid             = None                  # PID of subprocess pytoolsPlot.py
 plotLastValues      = None                  # if != None the only the last
                                             # plotlastvalues will be plotted
 
-CONFIGFILE          = "cfg/pytoolsPlot.cfg" # default config file
-configfile          = CONFIGFILE
+
 
 
 #colors for the terminal

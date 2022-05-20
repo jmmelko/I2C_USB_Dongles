@@ -2,11 +2,13 @@
 # -*- coding: UTF-8 -*-
 
 import time, os, sys, subprocess, signal
-if not 'win32' in sys.platform:         # Py3:'linux', Py2:'linux2'
-    import curses                       # not available on Windows
 
 from i2cusbdongles import glob
 
+if glob.PLATFORM != 'win32':
+    import curses
+else:
+    import keyboard                       # not available on Windows
 
 def writeToFile(filename, text):
     """ Write the log file """
@@ -17,13 +19,7 @@ def writeToFile(filename, text):
     glob.logfile = None
 
 
-def checkForKeys():
-    """checking for a key press; uses curses, not available on windows"""
-
-    return curses.wrapper(kchecker)
-
-
-def kchecker(stdscr):
+def curses_checker(stdscr):
     """checking for keypress; uses curses, not available on windows"""
 
     stdscr.nodelay(True)            # do not wait for input when calling getch
@@ -35,6 +31,34 @@ def kchecker(stdscr):
         c = stdscr.getch()
         if c == -1:                 return rv
         elif c >= 32 and c <= 128:  rv += ", " + chr(c)
+
+def keyboard_checker(events):
+    
+    rv = ""
+    for e in events: 
+        rv += ", " + e.name
+    return rv
+        
+
+def checkForKeys():
+    """checking for a key press; uses curses, not available on windows"""
+    
+    try:
+        return curses.wrapper(curses_kchecker)
+    except NameError:
+        try:
+            if not keyboard._recording:
+                keyboard.start_recording()
+                return ""
+            else:
+                try:
+                    events = keyboard.stop_recording()
+                    return keyboard_checker(events)
+                except (ValueError,KeyError):                   
+                    keyboard._recording = None # to handle a bug in the keyboard module
+                    return ""
+        except NameError:
+            return ""
 
 
 def version_status():
@@ -69,11 +93,15 @@ def getProgPath():
     dp = os.path.dirname(os.path.realpath(__file__))
     return dp
 
+def getPackagePath():
+    
+    dp = os.path.normpath(os.path.join(getProgPath(), '../../'))
+    return dp   
 
 def getDataPath():
     """Return full path of the data directory; ends WITHOUT '/' """
 
-    dp = os.path.normpath(os.path.join(getProgPath(), '../../', glob.dataDirectory))
+    dp = os.path.normpath(os.path.join(getPackagePath(), glob.dataDirectory))
     return dp
 
 
@@ -162,9 +190,12 @@ def shutdown():
 
     if glob.subxpid != None:
         #os.kill(glob.subxpid, signal.SIGUSR1) # closes only when Windows has focus
-        os.kill(glob.subxpid, signal.SIGINT)   # closes always (but CTRL-C on
+        try:
+            os.kill(glob.subxpid, signal.SIGINT)   # closes always (but CTRL-C on
                                                # the window does NOT work
-        print("Plot is closed")
+            print("Plot is closed")
+        except PermissionError:
+            print("Could not close plot")
     print()
 
 
@@ -241,24 +272,31 @@ def plotGraph(logfilename):
 
     if glob.subxpid != None:
         #os.kill(glob.subxpid, signal.SIGUSR1) # closes only when Windows has focus
-        os.kill(glob.subxpid, signal.SIGINT)   # closes always (but CTRL-C on
+        try:
+            os.kill(glob.subxpid, signal.SIGINT)   # closes always (but CTRL-C on
                                                # the window does NOT work
-
+        except PermissionError:
+            pass                         
+                                    
     if not os.access(logfilename, os.R_OK):
         print("Logfile not found \7")
         return
 
     args = []
-    args.append(getProgPath() + '/' + 'pytoolsPlot.py')
+    if glob.PLATFORM.lower() == 'win32':
+        args.append(str(sys.executable))
+    args.append(os.path.join(getProgPath(),'pytoolsPlot.py'))
     args.append("-c")
-    args.append(glob.configfile)
+    args.append(os.path.join(getPackagePath(),glob.configfile))
     if glob.plotLastValues != None:
         args.append("-l")
         args.append(str(glob.plotLastValues))
-    args.append(logfilename)
+    args.append(os.path.join(getDataPath(),logfilename))
     if glob.subx != None:
         glob.subx.terminate
         glob.subx.kill
+
+    print(args)
 
     try:
         #print("args:", args)

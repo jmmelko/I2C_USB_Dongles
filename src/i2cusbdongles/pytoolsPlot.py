@@ -725,10 +725,10 @@ if __name__ == "__main__":
                 if os.access(cf, os.R_OK):
                     configfile = cf
                 else:
-                    ecprint("ERROR configuration file '{}' not readable".format(cf))
+                    ecprint("ERROR: configuration file '{}' not readable".format(cf))
                     sys.exit()
             else:
-                ecprint("ERROR configuration file '{}' not found".format(cf))
+                ecprint("ERROR: configuration file '{}' not found".format(cf))
                 sys.exit()
 
         elif opt in ("-l", "--last"):

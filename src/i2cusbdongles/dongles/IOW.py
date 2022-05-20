@@ -163,7 +163,7 @@ class IOWdongle(Dongle):
             self.__infoprint__(str("IowKitOpenDevice"), str(self.iow), str("(iowHandle of 1st device)"))
         else:
             util.ecprint("No {} dongle detected, Exiting".format(self.name))
-            sys.exit()
+            sys.exit(1)
 
         # set Read Timeout
         ito = iowkit.IowKitSetTimeout(self.iow, self.readtimeout)
@@ -195,8 +195,6 @@ class IOWdongle(Dongle):
         self.IOWsetIOWtoI2Cmode(name=self.short, info = "setI2Cmode", disable_pullups=disable_pullups, sensibus=sensibus)
 
         util.fncprint("{} dongle initialized{}".format(self.name," with pull-ups disabled" if disable_pullups else ""))
-
-        self.sensor_close_functions = []
 
 
     def IOWshowInfo(self):
