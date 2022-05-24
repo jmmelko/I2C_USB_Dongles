@@ -44,7 +44,7 @@ P   : plots all records
 v   : prints version numbers of i2cusbdongles and Python
 q   : quits i2cusbdongles
 
-Developed on Windows, using Python 3.7
+Developed on Windows, using Python 3.8
 """
 #%% Imports
 
@@ -141,7 +141,7 @@ def main(datafile, configfile = glob.CONFIGFILE):
         if 00: glob.SHT75        ["dngl"]     = glob.dongles['IOW-DG']
         if 00: glob.SHT71        ["dngl"]     = glob.dongles['IOW-DG']
         if 00: glob.SCD40        ["dngl"]     = glob.dongles['IOW-DG']
-        if 10: glob.SCD41        ["dngl"]     = glob.dongles['IOW-DG']
+        if 00: glob.SCD41        ["dngl"]     = glob.dongles['IOW-DG']
         if 00: glob.LM75         ["dngl"]     = glob.dongles['IOW-DG']
         if 10: glob.BME280       ["dngl"]     = glob.dongles['IOW-DG']
         if 00: glob.TSL2591      ["dngl"]     = glob.dongles['IOW-DG']
@@ -225,15 +225,14 @@ def main(datafile, configfile = glob.CONFIGFILE):
 
 
 #%% prepare array for averaging
-    avg_count       = 1        # average over up to 10 cycles
-    glob.sensor_vars     = 0
-    for sensor in glob.sensors:
+    avg_count       = 5        # average over up to avg_count cycles
+    glob.sensor_vars = 0
+    for sensor in glob.sensors: # automatic counting of sensor variables
         if (sensor['hndl'] is not None) and ('LED' not in sensor['feat']):
-            glob.sensor_vars += len(sensor['feat'].split(","))
-                
+            glob.sensor_vars += len(sensor['feat'].split(","))               
         
-    dummy           = np.zeros((1, glob.sensor_vars), dtype=float)# 1 row, 3 col
-    avg_array       = copy.copy(dummy)  # begin with single row
+    dummy           = np.zeros((1, glob.sensor_vars), dtype=float) # 1 row, N col
+    avg_array       = copy.copy(dummy)  # begins with a single row
 
     # Preparing Logfiles - data will be saved with 4 decimals:
     lfnheader1      = "#Log file"
@@ -242,8 +241,8 @@ def main(datafile, configfile = glob.CONFIGFILE):
 
     #%% start data logging
     print("\nCollecting data from {:d} sensors *****************".format(glob.sensor_vars))
-    counter        = 0
-    avg_index      = 0            # will be used modulo 10 to update the data array
+    counter        = 0            # cycle count
+    avg_index      = 0            # will be used modulo 'avg_count' to update the data array
     timelast_cycle = time.time()  # the next cycle will be started right now
     timelast_graph = 0            # if graphcycle > 0  show 1st plot immediately
     while True:
@@ -332,8 +331,8 @@ def main(datafile, configfile = glob.CONFIGFILE):
 
         # store data in array for averaging
         # maximum of 13 variables; for different numbers recoding needed !
-        # add one array row until total of 10
-        if avg_array.shape[0] < 10 and counter > 0 :
+        # add one array row until total of avg_count
+        if avg_array.shape[0] < avg_count and counter > 0 :
             avg_array = np.concatenate((avg_array, dummy), axis=0)
 
 
@@ -372,8 +371,8 @@ def main(datafile, configfile = glob.CONFIGFILE):
             util.writeToFile(glob.logfilename + ".avg", lfnheader2)
 
         
-        #mean_avg_array = np.mean(avg_array, axis=0) # average up to last 10 cycles
-        mean_avg_array = np.nanmean(avg_array, axis=0) # average up to last 10 cycles
+        #mean_avg_array = np.mean(avg_array, axis=0) # average up to last mean_avg_array cycles
+        mean_avg_array = np.nanmean(avg_array, axis=0) # average up to last mean_avg_array cycles
 
         # template for logging (4 decimals) and printing (1 decimal)
         logtmplt    = (u"{:8d}, {:19s}" + u",{: 11.4f}"   * glob.sensor_vars)
@@ -488,7 +487,7 @@ def main(datafile, configfile = glob.CONFIGFILE):
 
                 util.ncprint("   {:25s} : {}".  format("Last records to plot", glob.plotLastValues))
                 print()
-                for dongle_name, dongle in glob.dongles:
+                for dongle_name, dongle in glob.dongles.items():
                     util.infoPrint(dongle, dongle_name)
                 print()
 
@@ -575,7 +574,7 @@ if __name__ == "__main__":
             #print("arg:", len(arg), arg)     # so far only the Datafile is arg
             glob.logfilename = arg
     else:
-        glob.logfilename = os.path.join(util.getDataPath(), "Sensor-{}.log".format(util.strtime()))
+        glob.logfilename = os.path.join(util.getDataPath(), "Sensor-{}.log".format(util.strtime_filename()))
 
     if IOW: print("{:25s}: {}".format("IOW - Using Library", IOW.iowlib))
     print("{:25s}: {}".format("Logfilename",                    glob.logfilename))

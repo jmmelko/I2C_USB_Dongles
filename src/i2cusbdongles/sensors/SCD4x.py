@@ -127,10 +127,14 @@ class SensorSCD4x:
 
     def SCD4xInit(self, autostart=True):
         """Asks anything to the sensor to check initialization"""
-        answ = self.SCD4xGetSerialNumber()
-        util.ncprint(" "*23+"S/N = "+str(answ))
+        sn = self.SCD4xGetSerialNumber()
+        util.ncprint(" "*23+"S/N = "+str(sn))
         
-        self.SCD4XPerformSelfTest()
+        test = self.SCD4XPerformSelfTest()
+        
+        if sn is None or test is None:
+            util.fecprint("ERROR: Did not find any SCD4x sensor - Exiting")
+            sys.exit(1) 
         
         if autostart:
             self.SCD4xStartMeas()
@@ -138,7 +142,10 @@ class SensorSCD4x:
     def SCD4xGetSerialNumber(self):
         """Asks serial number"""
         answ = self.__I2Ccommand__('get_serial_number', info='Get S/N')
-        sn = answ[0]<<32|answ[1]<<16|answ[2]
+        if answ:
+            sn = answ[0]<<32|answ[1]<<16|answ[2]
+        else:
+            sn = None
         return sn
 
 
@@ -211,17 +218,22 @@ class SensorSCD4x:
     def SCD4XPerformSelfTest(self):
         
         answ = self.__I2Ccommand__('perform_self_test', info='SCD4x self-test')
-        check_bytes = [answ[0],answ[1]]
-        check_crc = answ[2]
-        check = int.from_bytes(check_bytes,'big')
-        if check_crc != self.__CRC__(check_bytes):
-            print('CRC failed for autotest - please try again')
-        else:
-            if check == 0:
-                print('SCD4x sensor is OK :-)')
+        if answ:
+            check_bytes = [answ[0],answ[1]]
+            check_crc = answ[2]
+            check = int.from_bytes(check_bytes,'big')
+            if check_crc != self.__CRC__(check_bytes):
+                print('CRC failed for autotest - please try again')
             else:
-                print('SCD4x sensor malfunction detected')
-            
+                if check == 0:
+                    print('SCD4x sensor is OK :-)')
+                    return True
+                else:
+                    print('SCD4x sensor malfunction detected')
+                    return False
+        else:
+            print('SCD4x self-test could not be performed')
+            return False
             
     def SCD4xPerformForcedRecalibration(self, ref_ppm=400, silent=False):
         """

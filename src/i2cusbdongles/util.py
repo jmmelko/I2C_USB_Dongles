@@ -5,11 +5,17 @@ import time, os, sys, subprocess, signal
 
 from i2cusbdongles import glob
 
-if glob.PLATFORM != 'win32':
-    import curses
-else:
-    import keyboard                       # not available on Windows
-
+interactive_keyboard = ''
+try:
+    if glob.PLATFORM != 'win32':
+        import curses # not available on Windows
+        interactive_keyboard = 'curses'
+    else:
+        import keyboard 
+        interactive_keyboard = 'keyboard'                       
+except ModuleNotFoundError: 
+    print("/!\\ WARNING: curses/keyboard module not found: interactive plotting is disabled /!\\")
+    
 def writeToFile(filename, text):
     """ Write the log file """
 
@@ -43,22 +49,21 @@ def keyboard_checker(events):
 def checkForKeys():
     """checking for a key press; uses curses, not available on windows"""
     
-    try:
-        return curses.wrapper(curses_kchecker)
-    except NameError:
-        try:
-            if not keyboard._recording:
-                keyboard.start_recording()
-                return ""
-            else:
-                try:
-                    events = keyboard.stop_recording()
-                    return keyboard_checker(events)
-                except (ValueError,KeyError):                   
-                    keyboard._recording = None # to handle a bug in the keyboard module
-                    return ""
-        except NameError:
+    if interactive_keyboard == 'curses':
+        return curses.wrapper(curses_checker)     
+    elif interactive_keyboard == 'keyboard':
+        if not keyboard._recording:
+            keyboard.start_recording()
             return ""
+        else:
+            try:
+                events = keyboard.stop_recording()
+                return keyboard_checker(events)
+            except (ValueError,KeyError):                   
+                keyboard._recording = None # to handle a bug in the keyboard module
+                return ""
+    else:
+        return ""
 
 
 def version_status():
@@ -105,11 +110,15 @@ def getDataPath():
     return dp
 
 
-def strtime():
+def strtime_filename():
     """Return current time as YYYY-MM-DD HH_MM_SS"""
 
     return time.strftime("%Y-%m-%d %H_%M_%S")
 
+def strtime():
+    """Return current time as YYYY-MM-DD HH:MM:SS"""
+
+    return time.strftime("%Y-%m-%d %H:%M:%S")
 
 def ncprint(*args, color = glob.HILITECOLOR, end = "\n"):
     """Normal color print """
@@ -296,7 +305,6 @@ def plotGraph(logfilename):
         glob.subx.terminate
         glob.subx.kill
 
-    print(args)
 
     try:
         #print("args:", args)

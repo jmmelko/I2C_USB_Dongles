@@ -261,7 +261,7 @@ class IOWdongle(Dongle):
         
         if not sensirion:
 
-            loop = 0
+            retry_loop = 0
             while True:
                 glob.dongles[self.name].IOWwriteData(addr, data, suspend_stop_flag=suspend_stop_flag, name=name, info=info, doPrint=doPrint)
                 
@@ -269,10 +269,10 @@ class IOWdongle(Dongle):
                 if rep[0] == 2:             # is Acknowledge Report (ID=02)
                     if rep[1] & 0x80:       # error bit is set                        
                         print("NoACK: error bit is set")
-                        if loop >= 3:
-                            util.fecprint("After {} retries NoACK ignored\n".format(loop))
+                        if retry_loop >= 3:
+                            util.fecprint("After {} retries NoACK ignored\n".format(retry_loop))
                             break
-                        loop += 1
+                        retry_loop += 1
                     else:
                         if doPrint: print("ACK")
                         break
@@ -287,18 +287,21 @@ class IOWdongle(Dongle):
             #after writing the address and/or data to the sensor and sending the ACK bit,
             #the sensor needs the execution time to respond to the I2C read header with an ACK bit.
             #Hence, it is required to wait the command execution time before issuing the read header.            
+            retry_loop = 0
             while True:
                 if wait_time>2: time.sleep(wait_time/1000) # wait
                 if sensirion:
                     glob.dongles[self.name].IOWreadCommand(addr, data[0], rbytes, name=name, info=info, doPrint=doPrint)
                 else:
                     glob.dongles[self.name].IOWinitializeRead(addr, rbytes, name=name, info=info, doPrint=doPrint)
+                
                 bytes_received = 0
                 while rbytes > bytes_received:
                     ret, rep = self.IOWreadData(rbytes, name="", info="", doPrint=doPrint)
                     if rep[0] == 3:
                         if rep[1] & 0x80:       # error bit is set
                             print("Error Bit set - Repeating Read")
+                            retry_loop += 1
                         else:
                             sumrep += rep[2:]
                             bytes_received += (self.reportSize-2)
@@ -306,8 +309,13 @@ class IOWdongle(Dongle):
                     else:
                         # sometimes repID==2 is found; loop until correct (helpful?)
                         util.ecprint("Wrong reportID - Repeating Read")
+                        retry_loop += 1
                         #time.sleep(0.5)
-                break
+                    if retry_loop >= 3:
+                        util.fecprint("After {} retries read ignored\n".format(retry_loop))
+                        break
+
+                break # stops accumulating bytes
 
             answ    = sumrep[:rbytes]
             stransw = ""

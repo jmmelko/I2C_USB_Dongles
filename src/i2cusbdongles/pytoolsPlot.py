@@ -37,17 +37,20 @@ import sys, os, time
 import getopt                   # parse command line for options and commands
 
 import matplotlib
-matplotlib.use('Qt4Agg')        # MUST be done BEFORE importing pyplot!
+try:
+    matplotlib.use('Qt5Agg')        # MUST be done BEFORE importing pyplot!
+except ValueError: 
+    matplotlib.use('Qt4Agg') 
 #matplotlib.use('TkAgg')        # an alternative to Qt4Agg, but ugly
 import matplotlib.pyplot as plt # MUST import AFTER matplotlib.use()!
 import matplotlib.dates  as mpld
 import numpy             as np
 
-__author__      = "ullix"
-__copyright__   = "Copyright 2016"
+__author__      = "ullix/jmmelko"
+__copyright__   = "Copyright 2016-2022"
 __credits__     = [""]
 __license__     = "GPL"
-__version__     = "0.6"         # derived from GeigerLog plot
+__version__     = "1.0b"         # derived from GeigerLog plot
 
 python_version  = sys.version.replace('\n', "")     # 3.5.2
 mplVersion      = matplotlib.__version__            # 2.2.0
@@ -209,15 +212,16 @@ def plotData(datafile, coldata, rowmax, colmax, xcol, cfg):
     # define events and handlers
     fig.canvas.mpl_connect('close_event', handle_close)# closes with CTRL-W
 
-    # set Window Title
-    fig.canvas.set_window_title("Data from: {} ({} records)".format(datafile, rowmax))
-
     # position figure on screen
     fm  = plt.get_current_fig_manager()
     #print ("current figmanager=", fm)    # matplotlib.backends.backend_qt5.FigureManagerQT
     #print(matplotlib.get_backend())      # e.g. "Qt4Agg" or "TkAgg"
     #print(matplotlib.matplotlib_fname()) # location of matplotlibrc, e.g.
     #/usr/local/lib/python3.5/dist-packages/matplotlib/mpl-data/matplotlibrc
+
+    # set Window Title
+    fm.set_window_title("Data from: {} ({} records)".format(datafile, rowmax))
+
 
     windowgeom = cfg["window"]
     #print("windowgeom:", windowgeom)
@@ -299,15 +303,15 @@ def plotData(datafile, coldata, rowmax, colmax, xcol, cfg):
 
             if "YL" in icfg0u:
                 if xcol > 0 and "DATE" in cfg[xcol][0].upper() :
-                    ax1.plot_date(xcoldata, ycoldata, color=clr, linewidth=lwi, linestyle='solid', label=lbl, marker="o", markeredgecolor=clr,  markersize=mks)
+                    ax1.plot_date(xcoldata, ycoldata, color=clr, linewidth=lwi, linestyle='solid', label=lbl, fmt="o", markeredgecolor=clr,  markersize=mks)
                 else:
-                    ax1.plot     (xcoldata, ycoldata, color=clr, linewidth=lwi, linestyle='solid', label=lbl, marker="o", markeredgecolor=clr,  markersize=mks)
+                    ax1.plot     (xcoldata, ycoldata, color=clr, linewidth=lwi, linestyle='solid', label=lbl, fmt="o", markeredgecolor=clr,  markersize=mks)
 
             elif "YR" in icfg0u:
                 if xcol > 0 and "DATE" in cfg[xcol][0].upper() :
-                    ax2.plot_date(xcoldata, ycoldata, color=clr, linewidth=lwi, linestyle='solid', label=lbl, marker="o", markeredgecolor=clr,  markersize=mks)
+                    ax2.plot_date(xcoldata, ycoldata, color=clr, linewidth=lwi, linestyle='solid', label=lbl, fmt="o", markeredgecolor=clr,  markersize=mks)
                 else:
-                    ax2.plot     (xcoldata, ycoldata, color=clr, linewidth=lwi, linestyle='solid', label=lbl, marker="o", markeredgecolor=clr,  markersize=mks)
+                    ax2.plot     (xcoldata, ycoldata, color=clr, linewidth=lwi, linestyle='solid', label=lbl, fmt="o", markeredgecolor=clr,  markersize=mks)
 
 
     # add the legend (unfortunately, results in 2 separate legends
@@ -638,7 +642,7 @@ def applyConfigToData(cfg, data, colmax):
 
 def main(datafile, configfile = CONFIGFILE):
 
-    cprint("pytoolsPlot ------------------------- PLOTTING CSV DATA" + "-"*100)
+    cprint("\npytoolsPlot -------------------- PLOTTING CSV DATA" + "-"*50)
 
     # Get the raw configuration, with timecol, Xcol
     cprint("\nGet raw configuration from", end="")

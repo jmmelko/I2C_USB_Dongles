@@ -141,11 +141,15 @@ class SensorBME280:
         data    = [0xD0]
         rbytes  = 1
         answ    = self.dongle.askDongle(self.addr, data, rbytes, name=self.name, info="get ID")
-        if answ[0] == self.subtype:
+        if not answ:
+            util.fecprint("ERROR: Did not find any sensor - Exiting")
+            sys.exit(1)  
+        elif answ[0] == self.subtype:
             util.fncprint("Found Sensor BME280")
         else:
-            util.fecprint("Did NOT find Sensor BME280 - Exiting")
-            sys.exit()
+            util.fecprint("ERROR: Did not find expected BME280 sensor - Exiting")
+            sys.exit(1) 
+
 
         # set ctrl-hum
         # 101 = 5 = oversampling * 16

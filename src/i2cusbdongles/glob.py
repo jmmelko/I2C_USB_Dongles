@@ -14,7 +14,7 @@ __author__          = "jmmelkon"
 __copyright__       = "Copyright 2022"
 __credits__         = [""]
 __license__         = "GPL"
-__version__         = "i2cusbdongles-1.0"   # forking from I2CpyTools by ullix
+__version__         = "i2cusbdongles-1.1"   # forking from I2CpyTools by ullix
 
 python_version      = ""                    # eg 3.7
 
